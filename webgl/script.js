@@ -53,6 +53,9 @@ onload = function() {
   // attribute属性を登録
   gl.vertexAttribPointer(attLocation, attStride, gl.FLOAT, false, 0, 0);
 
+  // uniformLocationの取得
+  var uniLocation = gl.getUniformLocation(prg, "mvpMatrix");
+
   // minMatrix.js を用いた行列関連処理
   // matIVオブジェクトを生成
   var m = new matIV();
@@ -61,6 +64,7 @@ onload = function() {
   var mMatrix = m.identity(m.create());
   var vMatrix = m.identity(m.create());
   var pMatrix = m.identity(m.create());
+  var tmpMatrix = m.identity(m.create());
   var mvpMatrix = m.identity(m.create());
 
   // ビュー座標変換行列
@@ -69,12 +73,26 @@ onload = function() {
   // プロジェクション座標変換行列
   m.perspective(90, c.width / c.height, 0.1, 100, pMatrix);
 
-  // 各行列を掛け合わせ座標変換行列を完成させる
-  m.multiply(pMatrix, vMatrix, mvpMatrix);
-  m.multiply(mvpMatrix, mMatrix, mvpMatrix);
+  // これら2つの積
+  m.multiply(pMatrix, vMatrix, tmpMatrix);
 
-  // uniformLocationの取得
-  var uniLocation = gl.getUniformLocation(prg, "mvpMatrix");
+  //1つ目のモデルを移動させるためのモデル座標変換行列
+  m.translate(mMatrix, [1.5,0.0,0.0], mMatrix);
+
+  //mvp of the 1st
+  m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+
+  //uniformLocationへ座標変換行列を登録し描画する
+  gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+
+  //2つ目
+  m.identity(mMatrix);
+  //こんどは-1.5動かす
+  m.translate(mMatrix, [-1.5,0.0,0.0], mMatrix);
+
+  //mvp of the 2nd
+  m.multiply(tmpMatrix, mMatrix, mvpMatrix);
 
   // uniformLocationへ座標変換行列を登録
   gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
@@ -85,6 +103,7 @@ onload = function() {
   // コンテキストの再描画
   // gl.flush();
 
+  // 以下，上で使用した関数の定義
   // シェーダを生成する関数
   function create_shader(id) {
     // シェーダを格納する変数
