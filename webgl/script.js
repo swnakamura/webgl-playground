@@ -7,15 +7,6 @@ onload = function() {
   // webglコンテキストを取得
   var gl = c.getContext("webgl") || c.getContext("experimental-webgl");
 
-  // canvasを初期化する色を設定する
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
-  // canvasを初期化する際の深度を設定する
-  gl.clearDepth(1.0);
-
-  // canvasを初期化
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
   // 頂点シェーダとフラグメントシェーダの生成
   var v_shader = create_shader("vs");
   var f_shader = create_shader("fs");
@@ -39,19 +30,13 @@ onload = function() {
     0.0, 1.0, 0.0, 1.0,
     0.0, 0.0, 1.0, 1.0
   ];
+
   // VBOの生成
-  // var vbo = create_vbo(vertex_position);
   var pos_vbo = create_vbo(vertex_position);
   var col_vbo = create_vbo(vertex_color);
 
   // VBOをバインドし登録する
   set_attribute([pos_vbo,col_vbo], attLocation, attStride);
-
-  // attribute属性を有効にする
-  gl.enableVertexAttribArray(attLocation);
-
-  // attribute属性を登録
-  gl.vertexAttribPointer(attLocation, attStride, gl.FLOAT, false, 0, 0);
 
   // uniformLocationの取得
   var uniLocation = gl.getUniformLocation(prg, "mvpMatrix");
@@ -71,7 +56,7 @@ onload = function() {
   m.lookAt([0.0, 1.0, 3.0], [0, 0, 0], [0, 1, 0], vMatrix);
 
   // プロジェクション座標変換行列
-  m.perspective(90, c.width / c.height, 0.1, 100, pMatrix);
+  m.perspective(90, c.width / c.height, 0.1, 100.0, pMatrix);
 
   // これら2つの積
   m.multiply(pMatrix, vMatrix, tmpMatrix);
@@ -82,26 +67,61 @@ onload = function() {
   //mvp of the 1st
   m.multiply(tmpMatrix, mMatrix, mvpMatrix);
 
-  //uniformLocationへ座標変換行列を登録し描画する
-  gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
-  gl.drawArrays(gl.TRIANGLES,0,3);
+  // カウンタの宣言
+  var count = 0;
 
-  //2つ目
-  m.identity(mMatrix);
-  //こんどは-1.5動かす
-  m.translate(mMatrix, [-1.5,0.0,0.0], mMatrix);
+  //恒常ループ
+  (function(){
+    //canvasを初期化
+    gl.clearColor(0.0,0.0,0.0,1.0);
+    gl.clearDepth(1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  //mvp of the 2nd
-  m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    //カウンタをインクリメント
+    count++;
 
-  // uniformLocationへ座標変換行列を登録
-  gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
+    //カウンタを元にラジアンを算出
+    var rad = (count % 360) * Math.PI / 180;
 
-  // モデルの描画
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
+    //モデル1は円の軌道を描き移動する
+    var x = Math.cos(rad);
+    var y = Math.sin(rad);
+    m.identity(mMatrix);
+    m.translate(mMatrix, [x, y+1.0, 0.0], mMatrix);
 
-  // コンテキストの再描画
-  // gl.flush();
+    //モデル1の座標変換行列を完成させる
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    //uniformLocationへ座標変換行列を登録し描画する
+    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+
+    //2つ目
+    m.identity(mMatrix);
+    m.translate(mMatrix, [1.0,-1.0,0.0], mMatrix);
+    m.rotate(mMatrix, rad, [0,1,0], mMatrix);
+
+    //座標変換行列
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    //uniformLocationへ座標変換行列を登録し描画する
+    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+
+    //3つ目
+    var s = Math.sin(rad)+1.0;
+    m.identity(mMatrix);
+    m.translate(mMatrix, [-1.0,-1.0,0.0], mMatrix);
+    m.scale(mMatrix,[s,s,0.0],mMatrix);
+
+    //座標変換行列
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    //uniformLocationへ座標変換行列を登録し描画する
+    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+
+    gl.flush();
+
+    setTimeout(arguments.callee,1000/30);
+  })();
 
   // 以下，上で使用した関数の定義
   // シェーダを生成する関数
