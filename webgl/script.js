@@ -22,13 +22,21 @@ onload = function() {
   attStride[1] = 4;
 
   // モデル(頂点)データ
+  // 4点に増えているのに注目
   var vertex_position = [0.0, 1.0, 0.0,
-                        1.0, 0.0, 0.0,
-                        -1.0, 0.0, 0.0];
+    1.0, 0.0, 0.0,
+    -1.0, 0.0, 0.0,
+    0.0, -1.0, 0.0];
   var vertex_color = [
     1.0, 0.0, 0.0, 1.0,
     0.0, 1.0, 0.0, 1.0,
-    0.0, 0.0, 1.0, 1.0
+    0.0, 0.0, 1.0, 1.0,
+    1.0, 1.0, 1.0, 1.0
+  ];
+
+  var index = [
+    0,1,2,
+    1,2,3
   ];
 
   // VBOの生成
@@ -38,8 +46,14 @@ onload = function() {
   // VBOをバインドし登録する
   set_attribute([pos_vbo,col_vbo], attLocation, attStride);
 
+  // IBOの生成
+  var ibo = create_ibo(index);
+
+  // IBOをバインドして登録する
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+
   // uniformLocationの取得
-  var uniLocation = gl.getUniformLocation(prg, "mvpMatrix");
+  var uniLocation = gl.getUniformLocation(prg, 'mvpMatrix');
 
   // minMatrix.js を用いた行列関連処理
   // matIVオブジェクトを生成
@@ -83,40 +97,14 @@ onload = function() {
     //カウンタを元にラジアンを算出
     var rad = (count % 360) * Math.PI / 180;
 
-    //モデル1は円の軌道を描き移動する
-    var x = Math.cos(rad);
-    var y = Math.sin(rad);
+    // モデル座標変換行列の生成
     m.identity(mMatrix);
-    m.translate(mMatrix, [x, y+1.0, 0.0], mMatrix);
-
-    //モデル1の座標変換行列を完成させる
-    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
-    //uniformLocationへ座標変換行列を登録し描画する
-    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
-    gl.drawArrays(gl.TRIANGLES,0,3);
-
-    //2つ目
-    m.identity(mMatrix);
-    m.translate(mMatrix, [1.0,-1.0,0.0], mMatrix);
     m.rotate(mMatrix, rad, [0,1,0], mMatrix);
-
-    //座標変換行列
     m.multiply(tmpMatrix, mMatrix, mvpMatrix);
-    //uniformLocationへ座標変換行列を登録し描画する
     gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
-    gl.drawArrays(gl.TRIANGLES,0,3);
 
-    //3つ目
-    var s = Math.sin(rad)+1.0;
-    m.identity(mMatrix);
-    m.translate(mMatrix, [-1.0,-1.0,0.0], mMatrix);
-    m.scale(mMatrix,[s,s,0.0],mMatrix);
-
-    //座標変換行列
-    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
-    //uniformLocationへ座標変換行列を登録し描画する
-    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
-    gl.drawArrays(gl.TRIANGLES,0,3);
+    //インデックスを用いた描画命令
+    gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
 
     gl.flush();
 
@@ -209,6 +197,23 @@ onload = function() {
 
     // 生成した VBO を返して終了
     return vbo;
+  }
+
+  function create_ibo(data) {
+    // バッファオブジェクトの生成
+    var ibo = gl.createBuffer();
+
+    // バッファをバインドする
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+
+    // バッファにデータをセット
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Int16Array(data), gl.STATIC_DRAW);
+
+    // バッファのバインドを無効化
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+    // 生成したIBOを返して終了
+    return ibo;
   }
 
   function set_attribute(vbos,attL,attS) {
