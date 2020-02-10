@@ -32,22 +32,11 @@ onload = function() {
   attStride[1] = 4;
 
   // モデル(頂点)データ
-  // 4点に増えているのに注目
-  var vertex_position = [0.0, 1.0, 0.0,
-    1.0, 0.0, 0.0,
-    -1.0, 0.0, 0.0,
-    0.0, -1.0, 0.0];
-  var vertex_color = [
-    1.0, 0.0, 0.0, 1.0,
-    0.0, 1.0, 0.0, 1.0,
-    0.0, 0.0, 1.0, 1.0,
-    1.0, 1.0, 1.0, 1.0
-  ];
+  var torusData = torus(32,32,1,2);
 
-  var index = [
-    0,1,2,
-    1,2,3
-  ];
+  vertex_position = torusData[0];
+  vertex_color = torusData[1];
+  index = torusData[2];
 
   // VBOの生成
   var pos_vbo = create_vbo(vertex_position);
@@ -77,7 +66,7 @@ onload = function() {
   var mvpMatrix = m.identity(m.create());
 
   // ビュー座標変換行列
-  m.lookAt([0.0, 1.0, 3.0], [0, 0, 0], [0, 1, 0], vMatrix);
+  m.lookAt([0.0, 3.0, 3.0], [0, 0, 0], [0, 1, 0], vMatrix);
 
   // プロジェクション座標変換行列
   m.perspective(90, c.width / c.height, 0.1, 100.0, pMatrix);
@@ -232,5 +221,51 @@ onload = function() {
       gl.enableVertexAttribArray(attL[i]);
       gl.vertexAttribPointer(attL[i], attS[i], gl.FLOAT, false, 0, 0);
     }
+  }
+
+  function torus(row, column, irad, orad){
+    var pos = new Array(), col = new Array(), idx = new Array();
+    for(var i = 0; i <= row; i++){
+      var r = Math.PI * 2 / row * i;
+      var rr = Math.cos(r);
+      var ry = Math.sin(r);
+      for(var ii = 0; ii <= column; ii++){
+        var tr = Math.PI * 2 / column * ii;
+        var tx = (rr * irad + orad) * Math.cos(tr);
+        var ty = ry * irad;
+        var tz = (rr * irad + orad) * Math.sin(tr);
+        pos.push(tx, ty, tz);
+        var tc = hsva(360 / column * ii, 1, 1, 1);
+        col.push(tc[0], tc[1], tc[2], tc[3]);
+      }
+    }
+    for(i = 0; i < row; i++){
+      for(ii = 0; ii < column; ii++){
+        r = (column + 1) * i + ii;
+        idx.push(r, r + column + 1, r + 1);
+        idx.push(r + column + 1, r + column + 2, r + 1);
+      }
+    }
+    return [pos, col, idx];
+  }
+
+  function hsva(h, s, v, a){
+    if(s > 1 || v > 1 || a > 1){return;}
+    var th = h % 360;
+    var i = Math.floor(th / 60);
+    var f = th / 60 - i;
+    var m = v * (1 - s);
+    var n = v * (1 - s * f);
+    var k = v * (1 - s * (1 - f));
+    var color = new Array();
+    if(!s > 0 && !s < 0){
+      color.push(v, v, v, a); 
+    } else {
+      var r = new Array(v, n, m, m, k, v);
+      var g = new Array(k, v, v, n, m, m);
+      var b = new Array(m, m, k, v, v, n);
+      color.push(r[i], g[i], b[i], a);
+    }
+    return color;
   }
 };
