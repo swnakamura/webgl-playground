@@ -7,6 +7,16 @@ onload = function() {
   // webglコンテキストを取得
   var gl = c.getContext("webgl") || c.getContext("experimental-webgl");
 
+
+  // 深度テストを有効化
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
+
+  //カリングを有効化
+  gl.enable(gl.CULL_FACE);
+  // gl.frontFace(gl.CW);
+
+
   // 頂点シェーダとフラグメントシェーダの生成
   var v_shader = create_shader("vs");
   var f_shader = create_shader("fs");
